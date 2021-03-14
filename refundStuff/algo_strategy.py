@@ -47,6 +47,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.turret_max_health_upgraded = 100
         self.wall_max_health_not_upgraded = 60
         self.wall_max_health_upgraded = 200
+        self.offense_mode = False
 
     def on_turn(self, turn_state):
         """
@@ -64,48 +65,23 @@ class AlgoStrategy(gamelib.AlgoCore):
 
         game_state.submit_turn()
 
-
-    """
-    NOTE: All the methods after this point are part of the sample starter-algo
-    strategy and can safely be replaced for your custom algo.
-    """
-
     def starter_strategy(self, game_state):
-        """
-        For defense we will use a spread out layout and some interceptors early on.
-        We will place turrets near locations the opponent managed to score on.
-        For offense we will use long range demolishers if they place stationary units near the enemy's front.
-        If there are no stationary units to attack in the front, we will send Scouts to try and score quickly.
-        """
-        # First, place basic defenses
-        self.build_defences(game_state)
+        
         # Now build reactive defenses based on where the enemy scored
         self.build_reactive_defense(game_state)
 
-        # If the turn is less than 5, stall with interceptors and wait to see enemy's base
-        if game_state.turn_number < 5:
-            self.stall_with_interceptors(game_state)
+        # If the turn is less than 3
+        if game_state.turn_number < 3:
+            self.build_defences(game_state)
         else:
-            # Now let's analyze the enemy base to see where their defenses are concentrated.
-            # If they have many units in the front we can build a line for our demolishers to attack them at long range.
-            if self.detect_enemy_unit(game_state, unit_type=None, valid_x=None, valid_y=[14, 15]) > 10:
-                self.demolisher_line_strategy(game_state)
+            if game_state.turn_number % 3 == 1:
+                self.build_offensive_structure(game_state)
+            elif game_state.turn_number % 3 == 0:
+                self.build_defensive_structure(game_state, remove = True)
             else:
-                # They don't have many units in the front so lets figure out their least defended area and send Scouts there.
+                self.build_defensive_structure(game_state)
 
-                # Only spawn Scouts every other turn
-                # Sending more at once is better since attacks can only hit a single scout at a time
-                if game_state.turn_number % 2 == 1:
-                    # To simplify we will just check sending them from back left and right
-                    scout_spawn_location_options = [[13, 0], [14, 0]]
-                    best_location = self.least_damage_spawn_location(game_state, scout_spawn_location_options)
-                    game_state.attempt_spawn(SCOUT, best_location, 1000)
-
-                # Lastly, if we have spare SP, let's build some Factories to generate more resources
-                support_locations = [[13, 2], [14, 2], [13, 3], [14, 3]]
-                game_state.attempt_spawn(SUPPORT, support_locations)
-
-    def build_defences(self, game_state):
+    def build_defences(self, game_state, offense = False, remove = False):
         """
         Build basic defenses using hardcoded locations.
         Remember to defend corners and avoid placing units in the front where enemy demolishers can attack them.
@@ -114,49 +90,35 @@ class AlgoStrategy(gamelib.AlgoCore):
         # More community tools available at: https://terminal.c1games.com/rules#Download
 
         # Place walls in front of turrets to soak up damage for them
-        outside_wall_locations = [[3, 10], [24, 10], [4, 9], [5, 9], [6, 9], [7, 9], [8, 9], [9, 9], [10, 9], [11, 9], [17, 9], [18, 9], [19, 9], [20, 9], [21, 9], [22, 9], [23, 9]]
-        game_state.attempt_spawn(WALL, outside_wall_locations)
-       
-        wall_locations = [[0, 13], [27, 13], [1, 12], [26, 12], [2, 11], [25, 11], [13, 10], [15, 10], [12, 9], [13, 9], [15, 9], [16, 9]]
-        for wall in wall_locations:
-            if len(game_state.game_map[wall]) > 0:
-                wall_health = game_state.game_map[wall][0].health
-                if game_state.game_map[wall][0].upgraded:
-                    if wall_health <= self.wall_max_health_upgraded*0.95:
-                        game_state.attempt_remove(wall)
-                else:
-                    if wall_health <= self.wall_max_health_not_upgraded*0.95:
-                        game_state.attempt_remove(wall)
-            else:
-                break
-        
-        # Place turrets that attack enemy units
-        turret_locations = [[12, 8], [13, 8], [15, 8], [16, 8], [12, 7], [13, 7], [15, 7], [16, 7], [12, 6], [13, 6], [15, 6], [16, 6]]
-        
-        for turret in turret_locations:
-            if len(game_state.game_map[turret]) > 0:
-                turret_health = game_state.game_map[turret][0].health
-                if game_state.game_map[turret][0].upgraded:
-                    if turret_health <= self.turret_max_health_upgraded*0.75:
-                        game_state.attempt_remove(turret)
-                else:
-                    if turret_health <= self.turret_max_health_not_upgraded*0.75:
-                        game_state.attempt_remove(turret)
-            else:
-                break
+        if offense:
+            self.build_offensive_structure(game_state)
+        else:
+            self.build_defensive_structure(game_state, remove)
 
-        # attempt_spawn will try to spawn units if we have resources, and will check if a blocking unit is already there
-        game_state.attempt_spawn(TURRET, turret_locations)
-        
-        # upgrade walls so they soak more damage
-        game_state.attempt_upgrade(turret_locations)
-        game_state.attempt_upgrade(wall_locations)
-
-        support_locations = [[13, 5], [15, 5], [13, 4], [15, 4], [13, 3], [15, 3]]
+    def build_offensive_structure(self, game_state):
+        support_locations = [[12, 5], [13, 5], [15, 5], [16, 5], [12, 4], [13, 4], [15, 4], [16, 4], [12, 3], [13, 3], [15, 3], [16, 3], [12, 2], [13, 2], [15, 2], [16, 2], [12, 1], [13, 1], [15, 1], [13, 0]]
         game_state.attempt_spawn(SUPPORT, support_locations)
+        game_state.attempt_remove(support_locations)
         game_state.attempt_upgrade(support_locations)
+        wall_locations = [[12, 6], [13, 6], [15, 6], [16, 6], [11, 5], [17, 5]]
+        game_state.attempt_spawn(WALL, wall_locations)
+        game_state.attempt_remove(wall_locations)
 
-        game_state.attempt_upgrade(outside_wall_locations)
+    def build_defensive_structure(self, game_state, remove = False):
+        shielded_wall_locations = [[0, 13], [1, 13], [23, 13], [24, 13], [25, 13], [26, 13], [27, 13], [22, 12], [20, 11], [22, 11], [19, 10]]
+        game_state.attempt_spawn(WALL, shielded_wall_locations)
+        game_state.attempt_upgrade(shielded_wall_locations)
+        if remove:
+            game_state.attempt_remove(shielded_wall_locations)
+        wall_locations = [[2, 13], [3, 13], [4, 13], [5, 12], [6, 11], [7, 10], [8, 9], [9, 9], [10, 9], [11, 9], [12, 9], [13, 9], [14, 9], [15, 9], [16, 9], [17, 9], [18, 9], [19, 9]]
+        game_state.attempt_spawn(WALL, wall_locations)
+        if remove:
+            game_state.attempt_remove(wall_locations)
+        turret_locations = [[2, 12], [23, 12], [20, 10], [22, 10]]
+        game_state.attempt_spawn(TURRET, turret_locations)
+        game_state.attempt_upgrade(turret_locations)
+        if remove:
+            game_state.attempt_remove(turret_locations)
 
     def build_reactive_defense(self, game_state):
         """
