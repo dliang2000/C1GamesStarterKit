@@ -76,7 +76,7 @@ class AlgoStrategy(gamelib.AlgoCore):
                 self.build_defensive_structure(game_state)
             else:
                 self.build_offensive_structure(game_state)
-                self.attack(game_state, self.next_piece)
+                self.attack_offensive(game_state, self.next_piece)
             
         self.previous_enemy_health = game_state.enemy_health
 
@@ -104,12 +104,12 @@ class AlgoStrategy(gamelib.AlgoCore):
         game_state.attempt_remove(support_locations)
         game_state.attempt_upgrade(support_locations)
         wall_locations = [[12, 6], [13, 6], [15, 6], [16, 6], [11, 5], [17, 5]]
-        if game_state.number_afforable(len(wall_locations)) < game_state.SP:
+        if game_state.number_afforable(len(wall_locations)) <= game_state.SP:
             game_state.attempt_spawn(WALL, wall_locations)
             game_state.attempt_remove(wall_locations)
 
     def build_defensive_structure(self, game_state, remove = False):
-        turret_locations = [[20, 10], [22, 10], [2, 12], [3, 12], [23, 12], [26, 12], [23, 11]]
+        turret_locations = [[8,5], [20, 10], [22, 10], [2, 12], [3, 12], [23, 12], [26, 12], [23, 11]]
         game_state.attempt_spawn(TURRET, turret_locations)
         shielded_wall_locations = [[0, 13], [1, 13], [23, 13], [24, 13], [25, 13], [26, 13], [27, 13], [22, 12], [20, 11], [22, 11], [19, 10]]
         game_state.attempt_spawn(WALL, shielded_wall_locations)
@@ -132,9 +132,42 @@ class AlgoStrategy(gamelib.AlgoCore):
             # Build turret one space above so that it doesn't block our own edge spawn locations
             build_location = [location[0], location[1]+1]
             game_state.attempt_spawn(TURRET, build_location)
+        for location in self.scored_on_locations:
+            build_location = [location[0], location[1]+1]
+            game_state.attempt_upgrade(build_location)
 
     def attack(self, game_state, piece):
-        game_state.attempt_spawn(piece, [14,0], 1000)
+        turn = game_state.turn_number
+        own_mp = game_state.get_resource(1)
+        if turn > 3 and turn < 10 and own_mp >= 11:
+            game_state.attempt_spawn(piece, [14, 0], int(game_state.number_affordable(piece) * 0.6))
+            game_state.attempt_spawn(piece, [17, 3], game_state.number_affordable(piece))
+        elif turn >= 10 and turn < 20 and own_mp >= 20:
+            game_state.attempt_spawn(piece, [14, 0], int(game_state.number_affordable(piece) * 0.5))
+            game_state.attempt_spawn(piece, [17, 3], game_state.number_affordable(piece))
+        elif turn >= 20 and turn < 30 and own_mp >= 30:
+            game_state.attempt_spawn(piece, [14, 0], int(game_state.number_affordable(piece) * 0.45))
+            game_state.attempt_spawn(piece, [17, 3], game_state.number_affordable(piece))
+        elif own_mp >= 40:
+            game_state.attempt_spawn(piece, [14, 0], int(game_state.number_affordable(piece) * 0.4))
+            game_state.attempt_spawn(piece, [17, 3], game_state.number_affordable(piece))
+
+    def attack_offensive(self, game_state, piece):
+        turn = game_state.turn_number
+        own_mp = game_state.get_resource(1)
+        if turn > 3 and turn < 10 and own_mp >= 11:
+            game_state.attempt_spawn(piece, [14, 0], int(game_state.number_affordable(piece) * 0.6))
+            game_state.attempt_spawn(piece, [18, 4], game_state.number_affordable(piece))
+        elif turn >= 10 and turn < 20 and own_mp >= 20:
+            game_state.attempt_spawn(piece, [14, 0], int(game_state.number_affordable(piece) * 0.5))
+            game_state.attempt_spawn(piece, [18, 4], game_state.number_affordable(piece))
+        elif turn >= 20 and turn < 30 and own_mp >= 30:
+            game_state.attempt_spawn(piece, [14, 0], int(game_state.number_affordable(piece) * 0.45))
+            game_state.attempt_spawn(piece, [18, 4], game_state.number_affordable(piece))
+        elif own_mp >= 40:
+            game_state.attempt_spawn(piece, [14, 0], int(game_state.number_affordable(piece) * 0.4))
+            game_state.attempt_spawn(piece, [18, 4], game_state.number_affordable(piece))
+
 
     def stall_with_interceptors(self, game_state):
         """
