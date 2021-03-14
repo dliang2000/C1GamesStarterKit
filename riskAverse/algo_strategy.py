@@ -122,10 +122,10 @@ class AlgoStrategy(gamelib.AlgoCore):
             if len(game_state.game_map[wall]) > 0:
                 wall_health = game_state.game_map[wall][0].health
                 if game_state.game_map[wall][0].upgraded:
-                    if wall_health <= self.wall_max_health_upgraded*0.25:
+                    if wall_health <= self.wall_max_health_upgraded*0.95:
                         game_state.attempt_remove(wall)
                 else:
-                    if wall_health <= self.wall_max_health_not_upgraded*0.25:
+                    if wall_health <= self.wall_max_health_not_upgraded*0.95:
                         game_state.attempt_remove(wall)
             else:
                 break
@@ -137,10 +137,10 @@ class AlgoStrategy(gamelib.AlgoCore):
             if len(game_state.game_map[turret]) > 0:
                 turret_health = game_state.game_map[turret][0].health
                 if game_state.game_map[turret][0].upgraded:
-                    if turret_health <= self.turret_max_health_upgraded*0.25:
+                    if turret_health <= self.turret_max_health_upgraded*0.75:
                         game_state.attempt_remove(turret)
                 else:
-                    if turret_health <= self.turret_max_health_not_upgraded*0.25:
+                    if turret_health <= self.turret_max_health_not_upgraded*0.75:
                         game_state.attempt_remove(turret)
             else:
                 break
