@@ -43,10 +43,10 @@ class AlgoStrategy(gamelib.AlgoCore):
         SP = 0
         # This is a good place to do initial setup
         self.scored_on_locations = []
-        self.turret_max_health_not_upgraded = 0
-        self.turret_max_health_upgraded = 0
-        self.wall_max_health_not_upgraded = 0
-        self.wall_max_health_upgraded = 0
+        self.turret_max_health_not_upgraded = 60
+        self.turret_max_health_upgraded = 100
+        self.wall_max_health_not_upgraded = 60
+        self.wall_max_health_upgraded = 200
 
     def on_turn(self, turn_state):
         """
@@ -116,36 +116,34 @@ class AlgoStrategy(gamelib.AlgoCore):
         # Place walls in front of turrets to soak up damage for them
         outside_wall_locations = [[0, 13], [27, 13], [1, 12], [26, 12], [2, 11], [25, 11], [3, 10], [24, 10], [4, 9], [5, 9], [6, 9], [7, 9], [8, 9], [9, 9], [10, 9], [11, 9], [17, 9], [18, 9], [19, 9], [20, 9], [21, 9], [22, 9], [23, 9]]
         game_state.attempt_spawn(WALL, outside_wall_locations)
-        if game_state.gamp_map[outside_wall_locations[0]].upgraded:
-            self.wall_max_health_upgraded = max(self.wall_max_health_upgraded, game_state.game_map[outside_wall_locations[0]].health)
-        else:
-            self.wall_max_health_not_upgraded = max(self.wall_max_health_not_upgraded, game_state.game_map[outside_wall_locations[0]].health)
-
+       
         wall_locations = [[0, 13], [27, 13], [1, 12], [26, 12], [2, 11], [25, 11], [13, 10], [15, 10], [12, 9], [13, 9], [15, 9], [16, 9]]
         for wall in wall_locations:
-            wall_health = game_state.game_map[wall].health
-            if game_state.game_map[wall].upgraded:
-                if wall_health <= self.wall_max_health_upgraded*0.25:
-                    game_state.attempt_remove(wall)
+            if len(game_state.game_map[wall]) > 0:
+                wall_health = game_state.game_map[wall][0].health
+                if game_state.game_map[wall][0].upgraded:
+                    if wall_health <= self.wall_max_health_upgraded*0.25:
+                        game_state.attempt_remove(wall)
+                else:
+                    if wall_health <= self.wall_max_health_not_upgraded*0.25:
+                        game_state.attempt_remove(wall)
             else:
-                if wall_health <= self.wall_max_health_not_upgraded*0.25:
-                    game_state.attempt_remove(wall)
+                break
         
         # Place turrets that attack enemy units
         turret_locations = [[12, 8], [13, 8], [15, 8], [16, 8], [12, 7], [13, 7], [15, 7], [16, 7], [12, 6], [13, 6], [15, 6], [16, 6]]
-        if game_state.gamp_map[turret_locations[0]].upgraded:
-            self.turret_max_health_upgraded = max(self.turret_max_health_upgraded, game_state.game_map[turret_locations[0]].health)
-        else:
-            self.turret_max_health_not_upgraded = max(self.turret_max_health_not_upgraded, game_state.game_map[turret_locations[0]].health)
-
+        
         for turret in turret_locations:
-            turret_health = game_state.game_map[turret].health
-            if game_state.game_map[turret].upgraded:
-                if turret_health <= self.turret_max_health_upgraded*0.25:
-                    game_state.attempt_remove(turret)
+            if len(game_state.game_map[turret]) > 0:
+                turret_health = game_state.game_map[turret][0].health
+                if game_state.game_map[turret][0].upgraded:
+                    if turret_health <= self.turret_max_health_upgraded*0.25:
+                        game_state.attempt_remove(turret)
+                else:
+                    if turret_health <= self.turret_max_health_not_upgraded*0.25:
+                        game_state.attempt_remove(turret)
             else:
-                if turret_health <= self.turret_max_health_not_upgraded*0.25:
-                    game_state.attempt_remove(turret)
+                break
 
         # attempt_spawn will try to spawn units if we have resources, and will check if a blocking unit is already there
         game_state.attempt_spawn(TURRET, turret_locations)
