@@ -71,13 +71,12 @@ class AlgoStrategy(gamelib.AlgoCore):
             if self.attackMadeNoDifference(game_state):
                 self.next_piece = piece[1]
                 self.build_defensive_structure(game_state)
-                self.attack(game_state, piece[2])
             elif game_state.MP < 10:
                 self.next_piece = piece[0]
                 self.build_defensive_structure(game_state)
-                self.attack(game_state, piece[2])
             else:
                 self.build_offensive_structure(game_state)
+                self.attack(game_state, self.next_piece)
             
         self.previous_enemy_health = game_state.enemy_health
 
@@ -105,24 +104,23 @@ class AlgoStrategy(gamelib.AlgoCore):
         game_state.attempt_remove(support_locations)
         game_state.attempt_upgrade(support_locations)
         wall_locations = [[12, 6], [13, 6], [15, 6], [16, 6], [11, 5], [17, 5]]
-        game_state.attempt_spawn(WALL, wall_locations)
-        game_state.attempt_remove(wall_locations)
+        if game_state.number_afforable(len(wall_locations)) < game_state.SP:
+            game_state.attempt_spawn(WALL, wall_locations)
+            game_state.attempt_remove(wall_locations)
 
     def build_defensive_structure(self, game_state, remove = False):
+        turret_locations = [[20, 10], [22, 10], [2, 12], [3, 12], [23, 12], [26, 12], [23, 11]]
+        game_state.attempt_spawn(TURRET, turret_locations)
         shielded_wall_locations = [[0, 13], [1, 13], [23, 13], [24, 13], [25, 13], [26, 13], [27, 13], [22, 12], [20, 11], [22, 11], [19, 10]]
         game_state.attempt_spawn(WALL, shielded_wall_locations)
-        if remove:
-            game_state.attempt_remove(shielded_wall_locations)
         wall_locations = [[2, 13], [3, 13], [4, 13], [5, 12], [6, 11], [7, 10], [8, 9], [9, 9], [10, 9], [11, 9], [12, 9], [13, 9], [14, 9], [15, 9], [16, 9], [17, 9], [18, 9], [19, 9]]
         game_state.attempt_spawn(WALL, wall_locations)
-        if remove:
-            game_state.attempt_remove(wall_locations)
-        turret_locations = [[2, 12], [3, 12], [23, 12], [26, 12], [23, 11], [20, 10], [22, 10]]
-        game_state.attempt_spawn(TURRET, turret_locations)
         game_state.attempt_upgrade(turret_locations)
         game_state.attempt_upgrade(shielded_wall_locations)
         if remove:
+            game_state.attempt_remove(wall_locations)
             game_state.attempt_remove(turret_locations)
+            game_state.attempt_remove(shielded_wall_locations)
 
     def build_reactive_defense(self, game_state):
         """
