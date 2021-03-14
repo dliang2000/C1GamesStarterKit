@@ -43,11 +43,9 @@ class AlgoStrategy(gamelib.AlgoCore):
         SP = 0
         # This is a good place to do initial setup
         self.scored_on_locations = []
-        self.turret_max_health_not_upgraded = 60
-        self.turret_max_health_upgraded = 100
-        self.wall_max_health_not_upgraded = 60
-        self.wall_max_health_upgraded = 200
+        self.previous_enemy_health = 0
         self.offense_mode = False
+        self.next_piece = SCOUT
 
     def on_turn(self, turn_state):
         """
@@ -66,20 +64,25 @@ class AlgoStrategy(gamelib.AlgoCore):
         game_state.submit_turn()
 
     def starter_strategy(self, game_state):
-        
-        # Now build reactive defenses based on where the enemy scored
-        self.build_reactive_defense(game_state)
-
-        # If the turn is less than 3
+        piece = [SCOUT, DEMOLISHER, INTERCEPTOR]
         if game_state.turn_number < 3:
             self.build_defences(game_state)
         else:
-            if game_state.turn_number % 3 == 1:
-                self.build_offensive_structure(game_state)
-            elif game_state.turn_number % 3 == 0:
-                self.build_defensive_structure(game_state, remove = True)
-            else:
+            if self.attackMadeNoDifference(game_state):
+                self.next_piece = piece[1]
                 self.build_defensive_structure(game_state)
+                self.attack(game_state, piece[2])
+            elif game_state.MP < 10:
+                self.next_piece = piece[0]
+                self.build_defensive_structure(game_state)
+                self.attack(game_state, piece[2])
+            else:
+                self.build_offensive_structure(game_state)
+            
+        self.previous_enemy_health = game_state.enemy_health
+
+    def attackMadeNoDifference(self, game_state):
+        return game_state.enemy_health - self.previous_enemy_health == 0
 
     def build_defences(self, game_state, offense = False, remove = False):
         """
@@ -94,6 +97,7 @@ class AlgoStrategy(gamelib.AlgoCore):
             self.build_offensive_structure(game_state)
         else:
             self.build_defensive_structure(game_state, remove)
+        self.build_reactive_defense(game_state)
 
     def build_offensive_structure(self, game_state):
         support_locations = [[12, 5], [13, 5], [15, 5], [16, 5], [12, 4], [13, 4], [15, 4], [16, 4], [12, 3], [13, 3], [15, 3], [16, 3], [12, 2], [13, 2], [15, 2], [16, 2], [12, 1], [13, 1], [15, 1], [13, 0]]
@@ -107,16 +111,16 @@ class AlgoStrategy(gamelib.AlgoCore):
     def build_defensive_structure(self, game_state, remove = False):
         shielded_wall_locations = [[0, 13], [1, 13], [23, 13], [24, 13], [25, 13], [26, 13], [27, 13], [22, 12], [20, 11], [22, 11], [19, 10]]
         game_state.attempt_spawn(WALL, shielded_wall_locations)
-        game_state.attempt_upgrade(shielded_wall_locations)
         if remove:
             game_state.attempt_remove(shielded_wall_locations)
         wall_locations = [[2, 13], [3, 13], [4, 13], [5, 12], [6, 11], [7, 10], [8, 9], [9, 9], [10, 9], [11, 9], [12, 9], [13, 9], [14, 9], [15, 9], [16, 9], [17, 9], [18, 9], [19, 9]]
         game_state.attempt_spawn(WALL, wall_locations)
         if remove:
             game_state.attempt_remove(wall_locations)
-        turret_locations = [[2, 12], [23, 12], [20, 10], [22, 10]]
+        turret_locations = [[2, 12], [3, 12], [23, 12], [26, 12], [23, 11], [20, 10], [22, 10]]
         game_state.attempt_spawn(TURRET, turret_locations)
         game_state.attempt_upgrade(turret_locations)
+        game_state.attempt_upgrade(shielded_wall_locations)
         if remove:
             game_state.attempt_remove(turret_locations)
 
@@ -130,6 +134,9 @@ class AlgoStrategy(gamelib.AlgoCore):
             # Build turret one space above so that it doesn't block our own edge spawn locations
             build_location = [location[0], location[1]+1]
             game_state.attempt_spawn(TURRET, build_location)
+
+    def attack(self, game_state, piece):
+        game_state.attempt_spawn(piece, [14,0], 1000)
 
     def stall_with_interceptors(self, game_state):
         """
